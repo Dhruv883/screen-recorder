@@ -34,13 +34,19 @@ const RecordPage = () => {
     setShowOptions(true);
   };
 
-  const handleStartRecording = () => {
+  const handleStartRecording = async () => {
     const videoTracks: MediaStreamTrack[] = [];
-    const audioTracks: MediaStreamTrack[] = [];
+    const audioContext = new AudioContext();
+    const destination = audioContext.createMediaStreamDestination();
 
     if (screenStream) {
       screenStream.getVideoTracks().forEach((track) => videoTracks.push(track));
-      screenStream.getAudioTracks().forEach((track) => audioTracks.push(track));
+      screenStream.getAudioTracks().forEach((track) => {
+        const source = audioContext.createMediaStreamSource(
+          new MediaStream([track])
+        );
+        source.connect(destination);
+      });
     }
 
     if (webcamStream) {
@@ -48,17 +54,18 @@ const RecordPage = () => {
     }
 
     if (microphoneStream) {
-      microphoneStream
-        .getAudioTracks()
-        .forEach((track) => audioTracks.push(track));
+      microphoneStream.getAudioTracks().forEach((track) => {
+        const source = audioContext.createMediaStreamSource(
+          new MediaStream([track])
+        );
+        source.connect(destination);
+      });
     }
 
-    const allTracks = [...videoTracks, ...audioTracks];
+    const allTracks = [...videoTracks, ...destination.stream.getAudioTracks()];
+    const combinedStream = new MediaStream(allTracks);
 
-    if (allTracks.length > 0) {
-      const combinedStream = new MediaStream(allTracks);
-      startRecording(combinedStream);
-    }
+    startRecording(combinedStream);
   };
 
   const handleStopRecording = () => {
