@@ -1,22 +1,14 @@
-"use client";
-
 import React, { useState } from "react";
-import { RecordingOptions } from "@/components/RecordingOptions";
-import { VideoPreview } from "@/components/VideoPreview";
-import { ControlBar } from "@/components/ControlBar";
-import { useMediaStream } from "@/hooks/useMediaStream";
-import { useMediaRecorder } from "@/hooks/useMediaRecorder";
+import { RecordingOptions } from "./components/RecordingOptions";
+import { VideoPreview } from "./components/VideoPreview";
+import { ControlBar } from "./components/ControlBar";
+import { useMediaStream } from "./hooks/useMediaStream";
+import { useMediaRecorder } from "./hooks/useMediaRecorder";
 
-const RecordPage = () => {
+export const App: React.FC = () => {
   const [showOptions, setShowOptions] = useState(true);
-  const {
-    screenStream,
-    webcamStream,
-    microphoneStream,
-    getMediaStreams,
-    stopStreams,
-  } = useMediaStream();
-
+  const { screenStream, webcamStream, getMediaStreams, stopStreams } =
+    useMediaStream();
   const { isRecording, recordingData, startRecording, stopRecording } =
     useMediaRecorder();
 
@@ -35,29 +27,17 @@ const RecordPage = () => {
   };
 
   const handleStartRecording = () => {
-    const videoTracks: MediaStreamTrack[] = [];
-    const audioTracks: MediaStreamTrack[] = [];
-
-    if (screenStream) {
-      screenStream.getVideoTracks().forEach((track) => videoTracks.push(track));
-      screenStream.getAudioTracks().forEach((track) => audioTracks.push(track));
-    }
-
-    if (webcamStream) {
-      webcamStream.getVideoTracks().forEach((track) => videoTracks.push(track));
-    }
-
-    if (microphoneStream) {
-      microphoneStream
-        .getAudioTracks()
-        .forEach((track) => audioTracks.push(track));
-    }
-
-    const allTracks = [...videoTracks, ...audioTracks];
-
-    if (allTracks.length > 0) {
-      const combinedStream = new MediaStream(allTracks);
+    // Combine streams if both screen and webcam are present
+    if (screenStream && webcamStream) {
+      const tracks = [...screenStream.getTracks(), ...webcamStream.getTracks()];
+      const combinedStream = new MediaStream(tracks);
       startRecording(combinedStream);
+    } else {
+      // Use whichever stream is available
+      const stream = screenStream || webcamStream;
+      if (stream) {
+        startRecording(stream);
+      }
     }
   };
 
@@ -100,5 +80,3 @@ const RecordPage = () => {
     </div>
   );
 };
-
-export default RecordPage;
